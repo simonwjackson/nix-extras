@@ -1,0 +1,128 @@
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1791594108,
+        "narHash": "sha256-XK4KceonkwD8LuMAt/vNrz982mXJM5jeHAxMwsUXXAQ=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "6510408d147d8c5e6d76043e899e9251756f6a75",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nzbfast-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1790462019,
+        "narHash": "sha256-ytYHGIvmCrGg84CS0o2WWdN/zb7es9nDKMJHH2cg6QQ=",
+        "owner": "nzbfast",
+        "repo": "nzbfast",
+        "rev": "370da775361e29a9fb0d490f4750df899ea56c92",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nzbfast",
+        "ref": "v1.7.1",
+        "repo": "nzbfast",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixpkgs": "nixpkgs",
+        "nzbfast-src": "nzbfast-src",
+        "scryer-newznab-bundle": "scryer-newznab-bundle",
+        "scryer-newznab-wasm": "scryer-newznab-wasm",
+        "scryer-src": "scryer-src",
+        "scryer-torznab-bundle": "scryer-torznab-bundle",
+        "scryer-torznab-wasm": "scryer-torznab-wasm",
+        "scryer-trust-root": "scryer-trust-root"
+      }
+    },
+    "scryer-newznab-bundle": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-i4H7Uy/aPkrbVeHzmae+SQYQCVUj3NxCV1CGSiqnCWI=",
+        "type": "file",
+        "url": "https://cdn.scryer.media/scryer/plugins-v3/newznab/v2.2.3/plugin-v3.5cbd81043744cd0a9342e9d4cc6730b67390575adcc8b782f13a9e2f86be2e17.wasm.zst.bundle.zst"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://cdn.scryer.media/scryer/plugins-v3/newznab/v2.2.3/plugin-v3.5cbd81043744cd0a9342e9d4cc6730b67390575adcc8b782f13a9e2f86be2e17.wasm.zst.bundle.zst"
+      }
+    },
+    "scryer-newznab-wasm": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-1uMVwGJBtHjJtDctYyPOJF4jTa3veBXbNTvYIZgT9qY=",
+        "type": "file",
+        "url": "https://cdn.scryer.media/scryer/plugins-v3/newznab/v2.2.3/plugin-v3.5cbd81043744cd0a9342e9d4cc6730b67390575adcc8b782f13a9e2f86be2e17.wasm.zst"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://cdn.scryer.media/scryer/plugins-v3/newznab/v2.2.3/plugin-v3.5cbd81043744cd0a9342e9d4cc6730b67390575adcc8b782f13a9e2f86be2e17.wasm.zst"
+      }
+    },
+    "scryer-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1791231908,
+        "narHash": "sha256-DWgFygVl+dvguzqlexmri4MUBRB66FgC3FEUwVSIecY=",
+        "owner": "scryer-media",
+        "repo": "scryer",
+        "rev": "5c45aefee120cf4570d76ea91af5bc2c64620acc",
+        "type": "github"
+      },
+      "original": {
+        "owner": "scryer-media",
+        "ref": "scryer-v0.21.14",
+        "repo": "scryer",
+        "type": "github"
+      }
+    },
+    "scryer-torznab-bundle": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-XB0LEZaF/ctjgtN04SLRdxNd5RoKY9SGihf1/LCTx80=",
+        "type": "file",
+        "url": "https://cdn.scryer.media/scryer/plugins-v3/torznab/v2.2.3/plugin-v3.b9df6ec430d6b1a8546ca094817f6b383369fd728a7d8077899655bb9237572f.wasm.zst.bundle.zst"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://cdn.scryer.media/scryer/plugins-v3/torznab/v2.2.3/plugin-v3.b9df6ec430d6b1a8546ca094817f6b383369fd728a7d8077899655bb9237572f.wasm.zst.bundle.zst"
+      }
+    },
+    "scryer-torznab-wasm": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-if65iFJBZ9ukhZn7r+Qt5XxmU/iDegv1+jq2GjxMDbI=",
+        "type": "file",
+        "url": "https://cdn.scryer.media/scryer/plugins-v3/torznab/v2.2.3/plugin-v3.b9df6ec430d6b1a8546ca094817f6b383369fd728a7d8077899655bb9237572f.wasm.zst"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://cdn.scryer.media/scryer/plugins-v3/torznab/v2.2.3/plugin-v3.b9df6ec430d6b1a8546ca094817f6b383369fd728a7d8077899655bb9237572f.wasm.zst"
+      }
+    },
+    "scryer-trust-root": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-gZCUnBy0VrFR6WMkutMh257XphAez1JXBvOA/F7dlbw=",
+        "type": "file",
+        "url": "https://tuf-repo-cdn.sigstore.dev/targets/6494e21ea73fa7ee769f85f57d5a3e6a08725eae1e38c755fc3517c9e6bc0b66.trusted_root.json"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://tuf-repo-cdn.sigstore.dev/targets/6494e21ea73fa7ee769f85f57d5a3e6a08725eae1e38c755fc3517c9e6bc0b66.trusted_root.json"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

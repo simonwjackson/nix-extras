@@ -1,0 +1,38 @@
+{
+  "catalog_redirect_url": "https://cdn.scryer.media/scryer/catalog/v3/catalog-v3.redirect.json",
+  "catalog_url": "https://cdn.scryer.media/scryer/catalog/v3/93/catalog-v3.93.6fd416a38a9b.min.json.zst",
+  "host": {
+    "scryer_version": "0.21.14",
+    "sdk_constraint": ">=3.13.0, <4.0.0",
+    "sdk_version": "3.13.0"
+  },
+  "plugins": {
+    "newznab": {
+      "artifact_url": "https://cdn.scryer.media/scryer/plugins-v3/newznab/v2.2.3/plugin-v3.5cbd81043744cd0a9342e9d4cc6730b67390575adcc8b782f13a9e2f86be2e17.wasm.zst",
+      "compressed_blake3": "5cbd81043744cd0a9342e9d4cc6730b67390575adcc8b782f13a9e2f86be2e17",
+      "descriptor_sha256": "b45806f9d1354c7046ae6697648dd76039235bc5f6810461cd78b0b3bf5fbd85",
+      "signature_bundle_sha256": "88f900c4f61029e052aa3cf491ec371a615df4ab6d983b79550b08761ac03d91",
+      "signature_url": "https://cdn.scryer.media/scryer/plugins-v3/newznab/v2.2.3/plugin-v3.5cbd81043744cd0a9342e9d4cc6730b67390575adcc8b782f13a9e2f86be2e17.wasm.zst.bundle.zst",
+      "version": "2.2.3",
+      "wasm_blake3": "ffbb7154691ade9bafc0ea344ac8034d4320fcb2f4b0692ee03c42b223566182"
+    },
+    "torznab": {
+      "artifact_url": "https://cdn.scryer.media/scryer/plugins-v3/torznab/v2.2.3/plugin-v3.b9df6ec430d6b1a8546ca094817f6b383369fd728a7d8077899655bb9237572f.wasm.zst",
+      "compressed_blake3": "b9df6ec430d6b1a8546ca094817f6b383369fd728a7d8077899655bb9237572f",
+      "descriptor_sha256": "b386b2cc75855025e3cf895f3154fc175239041956b96b850ce7b122fa2cbd47",
+      "signature_bundle_sha256": "17e20413e27430ce5c7a0f77ff5052fde22215a5657d0311067264e01a0160ff",
+      "signature_url": "https://cdn.scryer.media/scryer/plugins-v3/torznab/v2.2.3/plugin-v3.b9df6ec430d6b1a8546ca094817f6b383369fd728a7d8077899655bb9237572f.wasm.zst.bundle.zst",
+      "version": "2.2.3",
+      "wasm_blake3": "d23b314e55a2692208403ac6fb623cae26464b8e66875395d1d8b9819a09661a"
+    }
+  },
+  "schemaVersion": 1,
+  "signer": {
+    "repository": "scryer-media/scryer-plugins",
+    "workflow": ".github/workflows/release-plugin-v3.yml"
+  },
+  "verified_bundles": {
+    "catalog_redirect_sha256": "56e148b38534e2632d9fa4f490d97a30814361c892e7f1d750225506abf24a3d",
+    "catalog_sha256": "1c33e1679c54aec2889473200d849c3e4860e095f41eaf84a4e41e47d842fa19"
+  }
+}
