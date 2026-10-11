@@ -18,14 +18,16 @@ No Docker, application fork, or `mountainous` dependency is required. `aarch64-l
 ## Try the packages
 
 ```sh
-nix run github:simonwjackson/nix-extras#nzbfast -- --version
-nix run github:simonwjackson/nix-extras#scryer -- --version
+nix run --accept-flake-config github:simonwjackson/nix-extras#nzbfast -- --version
+nix run --accept-flake-config github:simonwjackson/nix-extras#scryer -- --version
 
-nix build github:simonwjackson/nix-extras#nzbfast
-nix build github:simonwjackson/nix-extras#scryer
+nix build --accept-flake-config github:simonwjackson/nix-extras#nzbfast
+nix build --accept-flake-config github:simonwjackson/nix-extras#scryer
 ```
 
-These commands can require a full source build. This repository does not provide a binary cache.
+The flake offers a signed binary cache in this repository's GitHub Release assets. `--accept-flake-config` opts into its URL and public signing key. Nix still checks archive hashes and trusted signatures. If your daemon does not trust these settings, an administrator must configure it.
+
+The cache covers published builds of the default locked packages on `x86_64-linux`. Compiler or overlay overrides can produce different store paths that require a source build. GitHub availability is not guaranteed. See [binary cache notes](docs/binary-cache.md) for permanent configuration and maintenance.
 
 ## Use the NixOS modules
 
@@ -63,6 +65,17 @@ Add the input and modules to your existing flake. Keep your host configuration i
 ```
 
 The modules use this flake's locked packages by default. They do not require an overlay. A service's `package` option can select another build.
+
+An input flake's cache settings do not apply automatically to your host flake. Add this to your NixOS configuration to trust the cache:
+
+```nix
+nix.settings = {
+  extra-substituters = [ inputs.nix-extras.cache.url ];
+  extra-trusted-public-keys = inputs.nix-extras.cache.publicKeys;
+};
+```
+
+This example requires `inputs` in the configuration's scope, or pass it through `specialArgs`.
 
 After your normal `nixos-rebuild switch`, NZBFAST listens at `http://127.0.0.1:6789` and Scryer at `http://127.0.0.1:8080`. From another machine, use SSH forwarding or an authenticated reverse proxy.
 
@@ -115,7 +128,7 @@ To allow direct remote access, set both `listenAddress = "0.0.0.0"` and `openFir
 
 ## Outputs and reuse
 
-The flake exports `packages.x86_64-linux.{nzbfast,scryer}`, `nixosModules.{nzbfast,scryer}`, `overlays.default`, a formatter, and `checks.x86_64-linux`.
+The flake exports `packages.x86_64-linux.{nzbfast,scryer}`, `nixosModules.{nzbfast,scryer}`, `overlays.default`, a formatter, `checks.x86_64-linux`, the public `cache` identity, and the maintenance app `apps.x86_64-linux.cache-publish`.
 
 For an overlay, add `inputs.nix-extras.overlays.default` to `nixpkgs.overlays`. This exposes `pkgs.nzbfast` and `pkgs.scryer`; it uses your package set and compiler.
 
@@ -132,11 +145,11 @@ nix fmt -- --ci
 nix flake check -L --max-jobs 1 --cores 2
 ```
 
-Checks include selected upstream Rust unit tests, signed-asset verification with tampering tests, and NixOS VM service tests. The VMs exercise HTTP readiness, embedded UI, generated key permissions, unprivileged execution, restart persistence, custom users/directories, firewall settings, and disabling without deleting state. They use temporary state and no real provider credentials. The full upstream test suites, real Usenet downloads, media imports, and an NZBFAST-to-Scryer workflow are not tested here.
+Checks include selected upstream Rust unit tests, signed-asset verification with tampering tests, signed-cache import tests, and NixOS VM service tests. The VMs exercise HTTP readiness, embedded UI, generated key permissions, unprivileged execution, restart persistence, custom users/directories, firewall settings, and disabling without deleting state. They use temporary state and no real provider credentials. The full upstream test suites, real Usenet downloads, media imports, and an NZBFAST-to-Scryer workflow are not tested here.
 
 The VM tests require Linux with working KVM. CI fails rather than skips when KVM is unavailable. Cold builds can take substantially longer than evaluation; keep builds sequential on shared machines.
 
-See [maintenance notes](docs/maintenance.md) for updating sources and hashes.
+See [maintenance notes](docs/maintenance.md) for updating sources and hashes. Passing `main` builds publish selected package closures to the signed cache. Pull request jobs cannot use the signing secret or publish releases.
 
 ## License and attribution
 

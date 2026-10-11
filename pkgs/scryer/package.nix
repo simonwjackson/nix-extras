@@ -21,6 +21,16 @@
 }:
 let
   version = "0.21.14";
+  # Do not tie these inputs to the enclosing flake source tree. Cache and
+  # documentation changes must not change the application derivation.
+  materializer = builtins.path {
+    path = ./assemble-builtins.py;
+    name = "assemble-scryer-builtins.py";
+  };
+  builtinMetadata = builtins.path {
+    path = ./builtin-metadata;
+    name = "scryer-builtin-metadata";
+  };
   builtinAssets =
     runCommand "scryer-${version}-verified-builtins"
       {
@@ -35,8 +45,8 @@ let
       ''
         export HOME="$TMPDIR/home"
         mkdir -p "$HOME"
-        python3 ${./assemble-builtins.py} \
-          --source ${src} --metadata ${./builtin-metadata} --output "$out" \
+        python3 ${materializer} \
+          --source ${src} --metadata ${builtinMetadata} --output "$out" \
           --trust-root ${builtinInputs.trustRoot} \
           --newznab-wasm ${builtinInputs.newznabWasm} \
           --newznab-bundle ${builtinInputs.newznabBundle} \

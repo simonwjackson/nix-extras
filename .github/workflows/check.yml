@@ -2,6 +2,7 @@ name: Check
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -10,28 +11,44 @@ permissions:
 
 concurrency:
   group: check-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   check:
+    if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Free disk space on the disposable runner
-        run: sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
-      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+      - uses: ./.github/actions/validate
+
+  check-and-cache:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          extra_nix_config: |
-            experimental-features = nix-command flakes
-            max-jobs = 1
-            cores = 2
-      - name: Enable KVM for the NixOS service tests
-        run: sudo chmod a+rw /dev/kvm
-      - name: Check formatting
-        run: nix fmt -- --ci
-      - name: Build packages and run all checks
-        run: nix flake check -L --max-jobs 1 --cores 2
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/validate
+      - name: Stage the cache signing key after checks pass
+        env:
+          SIGNING_KEY: ${{ secrets.NIX_EXTRAS_CACHE_SECRET_KEY }}
+        run: |
+          test -n "$SIGNING_KEY"
+          install -m 600 /dev/null "$RUNNER_TEMP/cache-key.secret"
+          printf '%s' "$SIGNING_KEY" > "$RUNNER_TEMP/cache-key.secret"
+      - name: Publish verified package closures
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NIX_EXTRAS_CACHE_SECRET_KEY_FILE: ${{ runner.temp }}/cache-key.secret
+        run: nix run .#cache-publish
+      - name: Remove the temporary signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/cache-key.secret"

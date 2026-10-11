@@ -6,7 +6,7 @@
 }:
 let
   inherit (pkgs) lib;
-  system = pkgs.stdenv.hostPlatform.system;
+  inherit (pkgs.stdenv.hostPlatform) system;
   evaluate =
     extra:
     (nixpkgs.lib.nixosSystem {

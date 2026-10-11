@@ -1,5 +1,17 @@
 {
   "nodes": {
+    "cache-publisher": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-fzO2JSzfwMAMZkV5ZUskoBo788UNnN64oFgeuJl87ic=",
+        "type": "file",
+        "url": "https://raw.githubusercontent.com/korri-os/korri/e6902f0f3c7c2081db033b31c4cd6557b254537a/nix/cache/github-cache.py"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://raw.githubusercontent.com/korri-os/korri/e6902f0f3c7c2081db033b31c4cd6557b254537a/nix/cache/github-cache.py"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1791594108,
@@ -35,6 +47,7 @@
     },
     "root": {
       "inputs": {
+        "cache-publisher": "cache-publisher",
         "nixpkgs": "nixpkgs",
         "nzbfast-src": "nzbfast-src",
         "scryer-newznab-bundle": "scryer-newznab-bundle",

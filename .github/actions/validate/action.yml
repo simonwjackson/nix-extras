@@ -1,0 +1,26 @@
+name: Validate nix-extras
+description: Use the signed cache, then run formatting and all flake checks.
+runs:
+  using: composite
+  steps:
+    - name: Free disk space on the disposable runner
+      shell: bash
+      run: sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+    - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+      with:
+        github_access_token: ${{ github.token }}
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+          max-jobs = 1
+          cores = 2
+          accept-flake-config = true
+          require-sigs = true
+    - name: Enable KVM for the NixOS service tests
+      shell: bash
+      run: sudo chmod a+rw /dev/kvm
+    - name: Check formatting
+      shell: bash
+      run: nix fmt -- --ci
+    - name: Build packages and run all checks
+      shell: bash
+      run: nix flake check -L --max-jobs 1 --cores 2

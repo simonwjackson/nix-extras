@@ -1,8 +1,19 @@
 {
   description = "Community Nix packages, overlays, and NixOS modules";
 
+  nixConfig = {
+    # Nix requires literal flake settings, not imported expressions.
+    extra-substituters = "https://github.com/simonwjackson/nix-extras/releases/download/cache/";
+    extra-trusted-public-keys = "nix-extras-ci-1:+Vcq7i6dPWOsOZjQwOduCEZOZZJznS/XfOcNUhFmg3Q=";
+  };
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    cache-publisher = {
+      type = "file";
+      url = "https://raw.githubusercontent.com/korri-os/korri/e6902f0f3c7c2081db033b31c4cd6557b254537a/nix/cache/github-cache.py";
+      flake = false;
+    };
     nzbfast-src = {
       url = "github:nzbfast/nzbfast/v1.7.1";
       flake = false;
@@ -47,6 +58,7 @@
       ...
     }:
     let
+      cacheIdentity = import ./cache/identity.nix;
       systems = [ "x86_64-linux" ];
       forSystems = nixpkgs.lib.genAttrs systems;
       packagesFor = pkgs: {
@@ -64,7 +76,32 @@
       };
     in
     {
+      cache = cacheIdentity;
       packages = forSystems (system: packagesFor nixpkgs.legacyPackages.${system});
+      apps = forSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          publisher = pkgs.writeShellApplication {
+            name = "nix-extras-cache-publish";
+            runtimeInputs = [
+              pkgs.nix
+              pkgs.python3
+              pkgs.gh
+              pkgs.git
+            ];
+            text = ''
+              exec python3 ${./scripts/publish-cache.py} --publisher ${inputs.cache-publisher} --verify-script ${./scripts/verify-cache.py} "$@"
+            '';
+          };
+        in
+        {
+          cache-publish = {
+            type = "app";
+            program = "${publisher}/bin/nix-extras-cache-publish";
+          };
+        }
+      );
       overlays.default = final: _prev: packagesFor final;
       formatter = forSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-tree);
       nixosModules = {
@@ -84,6 +121,15 @@
         in
         {
           inherit (self.packages.${system}) nzbfast scryer;
+          cache-contract = import ./tests/cache-contract.nix {
+            inherit pkgs;
+            publisher = inputs.cache-publisher;
+          };
+          cache-input-stability = import ./tests/cache-input-stability.nix {
+            inherit pkgs;
+            src = scryer-src;
+            inherit (self.packages.${system}.scryer) builtinInputs;
+          };
           scryer-builtins = import ./tests/scryer-builtins.nix {
             inherit pkgs;
             package = self.packages.${system}.scryer;
