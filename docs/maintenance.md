@@ -4,7 +4,7 @@
 
 Each application has one package expression and one optional NixOS module. The flake selects sources, exposes packages, and supplies module defaults. Package expressions accept `src` through `callPackage`, so they remain usable outside this flake.
 
-Sources are non-flake inputs with release URLs and committed lock entries. Cargo and npm dependency hashes are separate from source hashes. No application executable is fetched from release assets.
+Sources are non-flake inputs with release URLs and committed lock entries. Cargo and npm dependency hashes are separate from source hashes. No application executable is fetched from release assets, except ReSkate's (see below).
 
 Scryer's application source omits generated built-in assets. Five non-flake file inputs lock its two compressed WASM plugins, two compressed Sigstore bundles, and a Sigstore trust snapshot. The package also takes these paths through `builtinInputs`, so `callPackage` does not require a flake. The asset builder checks signatures with upstream signer restrictions, BLAKE3 pins from the application source, and descriptor hashes. Verification runs in the network-isolated Nix sandbox.
 
@@ -48,6 +48,23 @@ The module exports use the flake's own package set for their default packages. T
 
 Stage new Nix files before evaluation. Git flakes omit untracked files.
 
+## Update ReSkate
+
+ReSkate is the one prebuilt package. Its client is Windows code that upstream builds with MSVC only, so the `reskate-client` input is the release zip, not source. Upstream releases often; 2.0.5, 2.0.6, and 2.0.7 came out within two days.
+
+1. Read the release notes. Check that the zip still holds `ReSkateLauncher.exe`, `ReSkate.dll`, `launcher.json`, `LICENSE.txt`, and `licenses/`.
+2. Change the version in the `reskate-client` URL in `flake.nix` and `version` in `pkgs/reskate/package.nix`.
+3. Update the input and compare the file with the release asset's published SHA-256 digest.
+
+   ```sh
+   nix flake update reskate-client
+   sha256sum "$(nix eval --raw --impure --expr '(builtins.getFlake (toString ./.)).inputs.reskate-client.outPath')"
+   ```
+
+4. Run `nix build .#checks.x86_64-linux.reskate .#checks.x86_64-linux.reskate-install --no-link -L`. The package check fails when the zip's `launcher.json` names another version.
+
+The installed launcher updates itself, so a late package update affects only new installs.
+
 ## Refresh Scryer built-ins
 
 Run `bash scripts/refresh-scryer-builtins.sh` from the checkout. It uses tools from the locked Nixpkgs input and a fresh temporary HOME. The upstream materializer verifies the signed catalog, signed plugin blobs, source pins, and a TUF-authenticated trust root. It writes a temporary snapshot and leaves the repository unchanged.
@@ -72,6 +89,8 @@ The build verifies the saved root hash and root structure. TUF authentication oc
 | `nzbfast` | Source build, `nzbkit-base` yEnc unit tests, installed executable version/help |
 | `scryer` | Rust and frontend source builds, verified built-in assets, `scryer-release-parser` library unit tests |
 | `scryer-builtins` | Offline verification of real upstream plugin signatures, root receipt and source pins; three tampering failures |
+| `reskate` | Release zip unpacks, `launcher.json` matches the package version, installer starts |
+| `reskate-install` | Installer against a Steam folder layout in a temp directory: game missing, older game build, second run, self-updated launcher kept, existing launch option kept, Steam running, `--force` |
 | `module-options` | Disabled modules, package overrides, loopback defaults, firewall options, user/group assertions, IPv6 command construction, environment files, writable paths |
 | `nzbfast-service` | Two real NixOS VMs, authenticated API, held synthetic NZB persistence, key permissions, custom user/directories, listener settings, firewall behavior, retained state when disabled |
 | `scryer-service` | Two real NixOS VMs, readiness and embedded UI, database/key persistence, custom user/directories, runtime environment, self-upgrade policy, firewall behavior, retained state when disabled |

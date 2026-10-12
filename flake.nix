@@ -14,6 +14,11 @@
       url = "https://raw.githubusercontent.com/korri-os/korri/e6902f0f3c7c2081db033b31c4cd6557b254537a/nix/cache/github-cache.py";
       flake = false;
     };
+    reskate-client = {
+      type = "file";
+      url = "https://github.com/Dingo-Shenanigans/ReSkate/releases/download/v2.0.7/ReSkate-2.0.7.zip";
+      flake = false;
+    };
     nzbfast-src = {
       url = "github:nzbfast/nzbfast/v1.7.1";
       flake = false;
@@ -63,6 +68,7 @@
       forSystems = nixpkgs.lib.genAttrs systems;
       packagesFor = pkgs: {
         nzbfast = pkgs.callPackage ./pkgs/nzbfast/package.nix { src = nzbfast-src; };
+        reskate = pkgs.callPackage ./pkgs/reskate/package.nix { src = inputs.reskate-client; };
         scryer = pkgs.callPackage ./pkgs/scryer/package.nix {
           src = scryer-src;
           builtinInputs = {
@@ -120,7 +126,11 @@
           pkgs = nixpkgs.legacyPackages.${system};
         in
         {
-          inherit (self.packages.${system}) nzbfast scryer;
+          inherit (self.packages.${system}) nzbfast reskate scryer;
+          reskate-install = import ./tests/reskate-install.nix {
+            inherit pkgs;
+            package = self.packages.${system}.reskate;
+          };
           cache-contract = import ./tests/cache-contract.nix {
             inherit pkgs;
             publisher = inputs.cache-publisher;

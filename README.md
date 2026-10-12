@@ -8,10 +8,13 @@ Community Nix packages, overlays, and NixOS modules.
 | --- | --- | --- | --- |
 | [NZBFAST](https://github.com/nzbfast/nzbfast) | 1.7.1 | `x86_64-linux` | GPL-3.0-or-later |
 | [Scryer](https://github.com/scryer-media/scryer) | 0.21.14 | `x86_64-linux` | GPL-3.0-only |
+| [ReSkate](https://github.com/Dingo-Shenanigans/ReSkate) | 2.0.7 | `x86_64-linux` | GPL-3.0-only |
 
-Both packages compile the Rust executable from pinned upstream source. NZBFAST embeds its dashboard and native repair/extraction code. Scryer's web UI builds with npm and embeds into its executable.
+NZBFAST and Scryer compile the Rust executable from pinned upstream source. NZBFAST embeds its dashboard and native repair/extraction code. Scryer's web UI builds with npm and embeds into its executable.
 
 Scryer's generated built-in assets are not committed in its application source. This flake locks upstream Newznab and Torznab WASM assets, their signature bundles, and a TUF-verified Sigstore trust snapshot. The build verifies plugin signatures, source BLAKE3 pins, and embedded descriptors without network access. This repository does not rebuild the WASM plugins.
+
+ReSkate is the exception: it is a prebuilt release. See [ReSkate](#reskate).
 
 No Docker, application fork, or `mountainous` dependency is required. `aarch64-linux` is not exported or claimed as tested.
 
@@ -81,6 +84,36 @@ After your normal `nixos-rebuild switch`, NZBFAST listens at `http://127.0.0.1:6
 
 The services remain independent. Configure providers and indexers in their application settings. Add NZBFAST to Scryer as a SABnzbd-compatible download client, using `http://127.0.0.1:6789` and NZBFAST's API key. Enabling both modules does not configure that connection or prove end-to-end download compatibility.
 
+## ReSkate
+
+[ReSkate](https://github.com/Dingo-Shenanigans/ReSkate) adds offline play, your own lobbies and servers, and mods to skate. on Steam. Its client is two Windows files, `ReSkateLauncher.exe` and `ReSkate.dll`, that run inside skate. under Proton. Upstream builds them with MSVC only, so this package takes them from the release zip and does not compile them.
+
+Steam owns the game folder, so Nix cannot put the files there. The package gives you `reskate-install`, which:
+
+1. finds skate. (Steam app 3354750) in your Steam libraries,
+2. copies the two files beside `Skate.exe`,
+3. sets the skate. launch option that starts ReSkate's launcher in place of EA's anti-cheat launcher, which refuses to run under Proton.
+
+Install skate. in Steam first. Then quit Steam, because Steam rewrites its config when it exits, and run:
+
+```sh
+nix run --accept-flake-config github:simonwjackson/nix-extras#reskate
+```
+
+Start Steam and press Play on skate. If Steam has updated the game past the build that ReSkate supports (`game.build_id` in `share/reskate/launcher.json`), the launcher asks you to sign in to Steam and downloads that build.
+
+| Flag | Effect |
+| --- | --- |
+| `--skip-launch-options` | Copy the files only. |
+| `--force` | Replace files that differ, and replace an existing launch option. |
+| `--steam-dir DIR` | Use this Steam root. Repeatable. Default: `~/.local/share/Steam` and `~/.steam/steam`. |
+
+The launch option is upstream's: `bash -c 'exec "${@/EAAntiCheat.GameServiceLauncher.exe/ReSkateLauncher.exe}"' -- %command%`. Exit codes: `0` done, `2` skate. is not installed, `3` the launch option was not written (Steam is running, or skate. already has a different launch option). The first write keeps each changed file as `localconfig.vdf.reskate-backup`.
+
+The launcher updates itself and `ReSkate.dll` in the game folder. Players and servers must run the same ReSkate version, so leave that on. For that reason `reskate-install` does not replace a file that differs from its own copy unless you pass `--force`. The package version matters only for the first install.
+
+The flake contains no game files. ReSkate's Linux dedicated server is not packaged.
+
 ## Options and state
 
 | Option | NZBFAST default | Scryer default |
@@ -128,7 +161,7 @@ To allow direct remote access, set both `listenAddress = "0.0.0.0"` and `openFir
 
 ## Outputs and reuse
 
-The flake exports `packages.x86_64-linux.{nzbfast,scryer}`, `nixosModules.{nzbfast,scryer}`, `overlays.default`, a formatter, `checks.x86_64-linux`, the public `cache` identity, and the maintenance app `apps.x86_64-linux.cache-publish`.
+The flake exports `packages.x86_64-linux.{nzbfast,reskate,scryer}`, `nixosModules.{nzbfast,scryer}`, `overlays.default`, a formatter, `checks.x86_64-linux`, the public `cache` identity, and the maintenance app `apps.x86_64-linux.cache-publish`.
 
 For an overlay, add `inputs.nix-extras.overlays.default` to `nixpkgs.overlays`. This exposes `pkgs.nzbfast` and `pkgs.scryer`; it uses your package set and compiler.
 

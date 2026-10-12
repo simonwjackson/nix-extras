@@ -45,11 +45,24 @@
         "type": "github"
       }
     },
+    "reskate-client": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-QwV/FLs2d6Oic6Qw1IEdsQJl54Z2EHOUudSSmDWg0GE=",
+        "type": "file",
+        "url": "https://github.com/Dingo-Shenanigans/ReSkate/releases/download/v2.0.7/ReSkate-2.0.7.zip"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://github.com/Dingo-Shenanigans/ReSkate/releases/download/v2.0.7/ReSkate-2.0.7.zip"
+      }
+    },
     "root": {
       "inputs": {
         "cache-publisher": "cache-publisher",
         "nixpkgs": "nixpkgs",
         "nzbfast-src": "nzbfast-src",
+        "reskate-client": "reskate-client",
         "scryer-newznab-bundle": "scryer-newznab-bundle",
         "scryer-newznab-wasm": "scryer-newznab-wasm",
         "scryer-src": "scryer-src",
