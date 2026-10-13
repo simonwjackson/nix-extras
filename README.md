@@ -7,7 +7,7 @@ Community Nix packages, overlays, and NixOS modules.
 | Package | Release | Exported system | Application license |
 | --- | --- | --- | --- |
 | [NZBFAST](https://github.com/nzbfast/nzbfast) | 1.7.1 | `x86_64-linux` | GPL-3.0-or-later |
-| [Scryer](https://github.com/scryer-media/scryer) | 0.21.14 | `x86_64-linux` | GPL-3.0-only |
+| [Scryer](https://github.com/scryer-media/scryer) | 0.21.15 | `x86_64-linux` | GPL-3.0-only |
 | [ReSkate](https://github.com/Dingo-Shenanigans/ReSkate) | 2.0.7 | `x86_64-linux` | GPL-3.0-only |
 
 NZBFAST and Scryer compile the Rust executable from pinned upstream source. NZBFAST embeds its dashboard and native repair/extraction code. Scryer's web UI builds with npm and embeds into its executable.
@@ -127,6 +127,13 @@ The flake contains no game files. ReSkate's Linux dedicated server is not packag
 | `openFirewall` | `false` | `false` |
 | `environmentFile` | `null` | `null` |
 | `writablePaths` | `[]` | `[]` |
+| `supplementaryGroups` | Not applicable | `[]` |
+| `umask` | Not applicable | `"0007"` |
+| `readOnlyPaths` | Not applicable | `[]` |
+| `adminPasswordFile` | Not applicable | `null` |
+| `adminUsername` | Not applicable | `"admin"` |
+| `environment` / `settings` (alias) | Not applicable | `{}` |
+| `waitForReady` | Not applicable | `false` |
 | `downloadDir` | `/var/lib/nzbfast/downloads` | Not applicable |
 
 State directories have mode `0700`. NZBFAST creates its download directory with mode `2770` for group access. For sharing, place downloads outside the private state directory, as in the example. A private parent directory blocks other group members even when the download directory itself has group permission.
@@ -136,6 +143,10 @@ The default users are dedicated system accounts. A custom `user` must already ex
 The systemd units can write their state directory, NZBFAST's download directory, declared `writablePaths`, and their private temporary directories. Create additional directories with suitable ownership before startup. Use paths outside `/home` and `/root`, which the units hide. These restrictions can block custom scripts or imports until you grant the required paths. External commands can be added with `systemd.services.<name>.path`.
 
 NZBFAST's saved settings normally override command-line options. Before each start, the module atomically resets only `bind`, `port`, and `out_dir` in an existing `settings.json`. Other fields remain unchanged. Invalid JSON fails startup without replacing the original file. Change these three settings in Nix, not in the dashboard.
+
+Scryer's `supplementaryGroups` grants the process extra groups; create those groups separately. `umask` accepts three or four octal digits. `readOnlyPaths` maps to systemd `ReadOnlyPaths`. The module rejects overlaps (including parent/child paths) with `writablePaths` or `stateDir`. Use canonical paths without symlink aliases for access policy.
+
+`environment` adds non-secret string environment variables, such as `SCRYER_AUTH_ENABLED = "true"`. `settings` is an alias, not a second source of settings. `waitForReady = true` polls `/health/ready` for JSON `ready: true` for up to 180 seconds. Failed readiness fails startup. Units with `After=scryer.service` and `Requires=scryer.service` then wait for migrations. Wildcard listeners are polled through loopback; IPv6 is supported.
 
 Scryer's bind address and self-upgrade policy also remain controlled by the module. In-application binary upgrades are disabled. NZBFAST 1.7.1 only notifies about updates. Update these packages through Nix.
 
@@ -155,15 +166,30 @@ Provision this file with your secret manager or a separate administrative step. 
 
 NZBFAST generates a private API key on a fresh start. Read it from `${stateDir}/apikey` as an administrator and configure clients with that key.
 
-Scryer retains its upstream authentication defaults. Loopback binding is not an authentication layer against other local users. Before exposing Scryer, configure authentication and replace any bootstrap admin credentials. Upstream supports `SCRYER_ADMIN_PASSWORD_FILE` or `SCRYER_ADMIN_PASSWORD` in its runtime environment. Any referenced secret file must be readable by the service user. If you enable form login, Scryer refuses an unchanged `admin` password.
+Scryer retains its upstream authentication defaults. Loopback binding is not an authentication layer against other local users. Before exposing Scryer, configure authentication and replace any bootstrap admin credentials. Prefer systemd credentials:
+
+```nix
+services.scryer = {
+  adminPasswordFile = "/run/secrets/scryer-admin-password";
+  adminUsername = "admin";
+  environment.SCRYER_AUTH_ENABLED = "true";
+  waitForReady = true;
+};
+```
+
+Provision the password file separately, owned by root with mode `0600`. The module passes `LoadCredential=admin-password:<path>` and `SCRYER_ADMIN_PASSWORD_FILE=%d/admin-password`. Systemd gives the service a private readable copy; the source stays root-only and is not imported into the store. `adminUsername` sets `SCRYER_ADMIN_USERNAME` only when `adminPasswordFile` is set. These credential settings take precedence over the optional environment file. They bootstrap a fresh admin, not reset an existing password. If you enable form login, Scryer refuses an unchanged `admin` password.
+
+Never put passwords in `environment` or `settings`. Upstream also supports runtime `SCRYER_ADMIN_PASSWORD_FILE` or `SCRYER_ADMIN_PASSWORD` through `environmentFile`; without the credential option, any referenced file must be readable by the service user.
 
 To allow direct remote access, set both `listenAddress = "0.0.0.0"` and `openFirewall = true`. Do not expose either application to the Internet without authentication and TLS.
 
 ## Outputs and reuse
 
-The flake exports `packages.x86_64-linux.{nzbfast,reskate,scryer}`, `nixosModules.{nzbfast,scryer}`, `overlays.default`, a formatter, `checks.x86_64-linux`, the public `cache` identity, and the maintenance app `apps.x86_64-linux.cache-publish`.
+The flake exports `packages.x86_64-linux.{nzbfast,reskate,scryer,scryer-plugin-transmission,scryer-plugin-jellyfin}`, `nixosModules.{nzbfast,scryer}`, `overlays.default`, a formatter, `checks.x86_64-linux`, the public `cache` identity, and the maintenance app `apps.x86_64-linux.cache-publish`.
 
 For an overlay, add `inputs.nix-extras.overlays.default` to `nixpkgs.overlays`. This exposes `pkgs.nzbfast` and `pkgs.scryer`; it uses your package set and compiler.
+
+The pinned plugin packages contain `share/scryer/plugins/<plugin>/plugin-v3.wasm.zst`: Transmission 2.0.2 and Jellyfin 1.1.1. Non-flake file inputs lock the release URLs and NAR hashes. Package builds also check the supplied raw SHA-256 and byte size. They do not auto-install plugins into mutable Scryer state. Upload them through Scryer's UI or `installUploadedPlugin`, with explicit risk acknowledgement. Manual uploads are unverified in Scryer's trust model, even though this flake checks their pinned hashes.
 
 The expressions in `pkgs/*/package.nix` are ordinary `callPackage` functions. Supply the pinned source through their `src` argument. Scryer also takes `builtinInputs`, containing `newznabWasm`, `newznabBundle`, `torznabWasm`, `torznabBundle`, and `trustRoot` file paths. The exported Scryer package exposes its locked `builtinInputs` for reuse. These files must match the verified metadata in `pkgs/scryer/builtin-metadata`.
 
@@ -178,7 +204,7 @@ nix fmt -- --ci
 nix flake check -L --max-jobs 1 --cores 2
 ```
 
-Checks include selected upstream Rust unit tests, signed-asset verification with tampering tests, signed-cache import tests, and NixOS VM service tests. The VMs exercise HTTP readiness, embedded UI, generated key permissions, unprivileged execution, restart persistence, custom users/directories, firewall settings, and disabling without deleting state. They use temporary state and no real provider credentials. The full upstream test suites, real Usenet downloads, media imports, and an NZBFAST-to-Scryer workflow are not tested here.
+Checks include selected upstream Rust unit tests, signed-asset verification with tampering tests, signed-cache import tests, and NixOS VM service tests. The VMs exercise HTTP readiness, embedded UI, generated key permissions, unprivileged execution, restart persistence, custom users/directories, firewall settings, and disabling without deleting state. A credential VM also checks admin GraphQL login, password absence from the store/unit/journal, umask, supplementary groups, read-only mounts, readiness ordering, and offline Transmission upload/listing. They use temporary state and no real provider credentials. The full upstream test suites, real Usenet downloads, media imports, and an NZBFAST-to-Scryer workflow are not tested here.
 
 The VM tests require Linux with working KVM. CI fails rather than skips when KVM is unavailable. Cold builds can take substantially longer than evaluation; keep builds sequential on shared machines.
 
@@ -188,4 +214,4 @@ See [maintenance notes](docs/maintenance.md) for updating sources and hashes. Pa
 
 The Nix code and documentation use the MIT license in [LICENSE](LICENSE). Application licenses remain unchanged.
 
-The Scryer expression adapts [jagu-sayan's nixpkgs PR #546327](https://github.com/NixOS/nixpkgs/pull/546327), specifically [commit `cc7f93e`](https://github.com/jagu-sayan/nixpkgs/blob/cc7f93eadc7f0667197cb9d2b55977847b8e8d31/pkgs/by-name/sc/scryer/package.nix). The Nixpkgs copyright and permission notice are preserved in this repository's license. Its 0.17.2 hashes and test skips are not reused for 0.21.14.
+The Scryer expression adapts [jagu-sayan's nixpkgs PR #546327](https://github.com/NixOS/nixpkgs/pull/546327), specifically [commit `cc7f93e`](https://github.com/jagu-sayan/nixpkgs/blob/cc7f93eadc7f0667197cb9d2b55977847b8e8d31/pkgs/by-name/sc/scryer/package.nix). The Nixpkgs copyright and permission notice are preserved in this repository's license. Its 0.17.2 hashes and test skips are not reused for 0.21.15.

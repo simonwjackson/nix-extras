@@ -1,10 +1,10 @@
 {
   "catalog_redirect_url": "https://cdn.scryer.media/scryer/catalog/v3/catalog-v3.redirect.json",
-  "catalog_url": "https://cdn.scryer.media/scryer/catalog/v3/93/catalog-v3.93.6fd416a38a9b.min.json.zst",
+  "catalog_url": "https://cdn.scryer.media/scryer/catalog/v3/110/catalog-v3.110.2cfc69c957c7.min.json.zst",
   "host": {
-    "scryer_version": "0.21.14",
-    "sdk_constraint": ">=3.13.0, <4.0.0",
-    "sdk_version": "3.13.0"
+    "scryer_version": "0.21.15",
+    "sdk_constraint": ">=3.15.0, <4.0.0",
+    "sdk_version": "3.15.0"
   },
   "plugins": {
     "newznab": {
@@ -32,7 +32,7 @@
     "workflow": ".github/workflows/release-plugin-v3.yml"
   },
   "verified_bundles": {
-    "catalog_redirect_sha256": "56e148b38534e2632d9fa4f490d97a30814361c892e7f1d750225506abf24a3d",
-    "catalog_sha256": "1c33e1679c54aec2889473200d849c3e4860e095f41eaf84a4e41e47d842fa19"
+    "catalog_redirect_sha256": "294070348f18864a35fd48e6ef2e452d826f6b6f2265309414d8edbe6002b8f0",
+    "catalog_sha256": "625dee07c456f693a76c4bafb67c032f1b15815abcb2ebe09ebc69dd5c2cd231"
   }
 }

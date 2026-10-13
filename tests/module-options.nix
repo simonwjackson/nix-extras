@@ -43,6 +43,14 @@ let
       port = 12346;
       environmentFile = "/run/secrets/scryer.env";
       writablePaths = [ "/srv/media" ];
+      supplementaryGroups = [ "downloads" ];
+      umask = "0027";
+      readOnlyPaths = [ "/srv/archive" ];
+      adminPasswordFile = "/run/secrets/scryer-password";
+      adminUsername = "operator";
+      settings.SCRYER_AUTH_ENABLED = "true";
+      environment.SCRYER_LOG_FORMAT = "text";
+      waitForReady = true;
     };
     users.users.worker = {
       isSystemUser = true;
@@ -68,6 +76,25 @@ let
       enable = true;
       stateDir = "/srv/all";
       downloadDir = "/srv/all";
+    };
+  };
+  overlapping = evaluate {
+    services.scryer = {
+      enable = true;
+      readOnlyPaths = [ "/srv/media" ];
+      writablePaths = [ "/srv/archive/../media/downloads" ];
+    };
+  };
+  storedPassword = evaluate {
+    services.scryer = {
+      enable = true;
+      adminPasswordFile = "/run/../nix/store/example-password";
+    };
+  };
+  invalidUmask = evaluate {
+    services.scryer = {
+      enable = true;
+      umask = "0088";
     };
   };
   rejected = config: message: lib.any (a: a.message == message && !a.assertion) config.assertions;
@@ -96,6 +123,34 @@ assert lib.hasInfix "SCRYER_BIND=[::1]:12346"
 assert
   customized.systemd.services.scryer.serviceConfig.EnvironmentFile == [ "/run/secrets/scryer.env" ];
 assert lib.elem "/srv/media" customized.systemd.services.scryer.serviceConfig.ReadWritePaths;
+assert defaults.services.scryer.supplementaryGroups == [ ];
+assert defaults.services.scryer.umask == "0007";
+assert defaults.services.scryer.readOnlyPaths == [ ];
+assert defaults.services.scryer.adminPasswordFile == null;
+assert defaults.services.scryer.adminUsername == "admin";
+assert defaults.services.scryer.settings == { };
+assert defaults.services.scryer.environment == { };
+assert !defaults.services.scryer.waitForReady;
+assert !(defaults.systemd.services.scryer.environment ? SCRYER_ADMIN_USERNAME);
+assert defaults.systemd.services.scryer.serviceConfig.LoadCredential == [ ];
+assert !(defaults.systemd.services.scryer.serviceConfig ? ExecStartPost);
+assert !(defaults.systemd.services.scryer.serviceConfig ? TimeoutStartSec);
+assert customized.systemd.services.scryer.serviceConfig.SupplementaryGroups == [ "downloads" ];
+assert customized.systemd.services.scryer.serviceConfig.UMask == "0027";
+assert customized.systemd.services.scryer.serviceConfig.ReadOnlyPaths == [ "/srv/archive" ];
+assert
+  customized.systemd.services.scryer.serviceConfig.LoadCredential
+  == [ "admin-password:/run/secrets/scryer-password" ];
+assert customized.systemd.services.scryer.environment.SCRYER_AUTH_ENABLED == "true";
+assert customized.systemd.services.scryer.environment.SCRYER_LOG_FORMAT == "text";
+assert
+  customized.systemd.services.scryer.environment.SCRYER_ADMIN_PASSWORD_FILE == "%d/admin-password";
+assert customized.systemd.services.scryer.environment.SCRYER_ADMIN_USERNAME == "operator";
+assert customized.systemd.services.scryer.serviceConfig ? ExecStartPost;
+assert rejected overlapping "Scryer readOnlyPaths must not overlap writablePaths or stateDir.";
+assert rejected storedPassword
+  "Scryer adminPasswordFile must be a runtime path outside the Nix store.";
+assert rejected invalidUmask "Scryer umask must contain three or four octal digits.";
 assert rejected root "NZBFAST must run as an unprivileged user and group.";
 assert rejected root "Scryer must run as an unprivileged user and group.";
 assert rejected sameDirectory

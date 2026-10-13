@@ -24,7 +24,17 @@
       flake = false;
     };
     scryer-src = {
-      url = "github:scryer-media/scryer/scryer-v0.21.14";
+      url = "github:scryer-media/scryer/scryer-v0.21.15";
+      flake = false;
+    };
+    scryer-plugin-transmission = {
+      type = "file";
+      url = "https://github.com/scryer-media/scryer-plugins/releases/download/plugins-v3/transmission/v2.0.2/plugin-v3.wasm.zst";
+      flake = false;
+    };
+    scryer-plugin-jellyfin = {
+      type = "file";
+      url = "https://github.com/scryer-media/scryer-plugins/releases/download/plugins-v3/jellyfin/v1.1.1/plugin-v3.wasm.zst";
       flake = false;
     };
     scryer-newznab-wasm = {
@@ -69,6 +79,20 @@
       packagesFor = pkgs: {
         nzbfast = pkgs.callPackage ./pkgs/nzbfast/package.nix { src = nzbfast-src; };
         reskate = pkgs.callPackage ./pkgs/reskate/package.nix { src = inputs.reskate-client; };
+        scryer-plugin-transmission = pkgs.callPackage ./pkgs/scryer/plugin.nix {
+          plugin = "transmission";
+          version = "2.0.2";
+          src = inputs.scryer-plugin-transmission;
+          sha256 = "830616be7dc262afcf9894bc9d925d62444aa88304d422aba794b3609d3a3247";
+          size = 420137;
+        };
+        scryer-plugin-jellyfin = pkgs.callPackage ./pkgs/scryer/plugin.nix {
+          plugin = "jellyfin";
+          version = "1.1.1";
+          src = inputs.scryer-plugin-jellyfin;
+          sha256 = "841a487687d683eb2d682868245a6aacabe054a490737408937846b2d52c9552";
+          size = 301465;
+        };
         scryer = pkgs.callPackage ./pkgs/scryer/package.nix {
           src = scryer-src;
           builtinInputs = {
@@ -126,7 +150,13 @@
           pkgs = nixpkgs.legacyPackages.${system};
         in
         {
-          inherit (self.packages.${system}) nzbfast reskate scryer;
+          inherit (self.packages.${system})
+            nzbfast
+            reskate
+            scryer
+            scryer-plugin-transmission
+            scryer-plugin-jellyfin
+            ;
           reskate-install = import ./tests/reskate-install.nix {
             inherit pkgs;
             package = self.packages.${system}.reskate;
@@ -151,6 +181,11 @@
           scryer-service = import ./tests/scryer.nix {
             inherit pkgs;
             module = self.nixosModules.scryer;
+          };
+          scryer-options = import ./tests/scryer-options.nix {
+            inherit pkgs;
+            module = self.nixosModules.scryer;
+            plugin = self.packages.${system}.scryer-plugin-transmission;
           };
           module-options = import ./tests/module-options.nix {
             inherit pkgs nixpkgs;

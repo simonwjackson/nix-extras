@@ -18,8 +18,56 @@ let
       "[${cfg.listenAddress}]:${toString cfg.port}"
     else
       "${cfg.listenAddress}:${toString cfg.port}";
+  readinessAddress =
+    if cfg.listenAddress == "0.0.0.0" then
+      "127.0.0.1"
+    else if cfg.listenAddress == "::" then
+      "::1"
+    else
+      cfg.listenAddress;
+  readinessHost =
+    if lib.hasInfix ":" readinessAddress then "[${readinessAddress}]" else readinessAddress;
+  waitForReady = pkgs.writeShellScript "scryer-wait-ready" ''
+    set -o pipefail
+    while true; do
+      if ${pkgs.curl}/bin/curl --noproxy '*' --fail --silent --max-time 2 \
+        ${lib.escapeShellArg "http://${readinessHost}:${toString cfg.port}/health/ready"} \
+        | ${pkgs.jq}/bin/jq -e '.ready == true' >/dev/null; then
+        exit 0
+      fi
+      sleep 1
+    done
+  '';
+  normalizePath =
+    path:
+    "/"
+    + lib.concatStringsSep "/" (
+      lib.foldl' (
+        parts: part:
+        if part == "" || part == "." then
+          parts
+        else if part == ".." then
+          lib.take (lib.max 0 (builtins.length parts - 1)) parts
+        else
+          parts ++ [ part ]
+      ) [ ] (lib.splitString "/" path)
+    );
+  overlaps =
+    leftPath: rightPath:
+    let
+      left = normalizePath leftPath;
+      right = normalizePath rightPath;
+    in
+    left == right
+    || left == "/"
+    || right == "/"
+    || lib.hasPrefix "${left}/" right
+    || lib.hasPrefix "${right}/" left;
 in
 {
+  imports = [
+    (lib.mkAliasOptionModule [ "services" "scryer" "settings" ] [ "services" "scryer" "environment" ])
+  ];
   options.services.scryer = {
     enable = mkEnableOption "the Scryer media manager";
     package = mkOption {
@@ -62,6 +110,42 @@ in
       example = "/run/secrets/scryer.env";
       description = "Runtime systemd environment file for secrets and upstream options. Use a string path, not a Nix path or store file.";
     };
+    supplementaryGroups = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      description = "Additional groups granted to the service process. Groups must already exist.";
+    };
+    umask = mkOption {
+      type = types.str;
+      default = "0007";
+      description = "File creation mask passed to systemd UMask.";
+    };
+    readOnlyPaths = mkOption {
+      type = types.listOf absolutePath;
+      default = [ ];
+      description = "Existing paths mounted read-only. Must not overlap writablePaths or stateDir.";
+    };
+    adminPasswordFile = mkOption {
+      type = types.nullOr absolutePath;
+      default = null;
+      example = "/run/secrets/scryer-admin-password";
+      description = "Root-only runtime password file loaded through systemd credentials. Use a string path outside the store, never a Nix path or builtins.readFile.";
+    };
+    adminUsername = mkOption {
+      type = types.str;
+      default = "admin";
+      description = "Bootstrap admin username, used only with adminPasswordFile.";
+    };
+    environment = mkOption {
+      type = types.attrsOf types.str;
+      default = { };
+      description = "Extra non-secret environment variables. settings is an alias. Use runtime files or credentials for secrets.";
+    };
+    waitForReady = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Wait up to 180 seconds for health/ready to report ready: true before dependent units start.";
+    };
     writablePaths = mkOption {
       type = types.listOf absolutePath;
       default = [ ];
@@ -74,6 +158,26 @@ in
       {
         assertion = cfg.user != "root" && cfg.group != "root";
         message = "Scryer must run as an unprivileged user and group.";
+      }
+      {
+        assertion =
+          !(lib.any (
+            readOnly: lib.any (overlaps readOnly) ([ cfg.stateDir ] ++ cfg.writablePaths)
+          ) cfg.readOnlyPaths);
+        message = "Scryer readOnlyPaths must not overlap writablePaths or stateDir.";
+      }
+      {
+        assertion =
+          cfg.adminPasswordFile == null
+          || !(
+            normalizePath cfg.adminPasswordFile == builtins.storeDir
+            || lib.hasPrefix "${builtins.storeDir}/" (normalizePath cfg.adminPasswordFile)
+          );
+        message = "Scryer adminPasswordFile must be a runtime path outside the Nix store.";
+      }
+      {
+        assertion = builtins.match "[0-7]{3,4}" cfg.umask != null;
+        message = "Scryer umask must contain three or four octal digits.";
       }
     ];
     users.groups.${cfg.group} = { };
@@ -93,6 +197,12 @@ in
         "network-online.target"
         "systemd-tmpfiles-setup.service"
       ];
+      environment =
+        cfg.environment
+        // lib.optionalAttrs (cfg.adminPasswordFile != null) {
+          SCRYER_ADMIN_PASSWORD_FILE = "%d/admin-password";
+          SCRYER_ADMIN_USERNAME = cfg.adminUsername;
+        };
       serviceConfig = {
         Type = "simple";
         User = cfg.user;
@@ -100,20 +210,33 @@ in
         WorkingDirectory = cfg.stateDir;
         # env keeps the Nix-owned bind and upgrade policy authoritative even
         # when the optional runtime environment file also names these keys.
-        ExecStart = lib.escapeShellArgs [
-          "${pkgs.coreutils}/bin/env"
-          "SCRYER_BIND=${bind}"
-          "SCRYER_DISABLE_SELF_UPGRADE=1"
-          "SCRYER_PACKAGE=nix"
-          (lib.getExe cfg.package)
-          "--data-dir"
-          cfg.stateDir
-        ];
+        ExecStart = lib.escapeShellArgs (
+          [
+            "${pkgs.coreutils}/bin/env"
+            "SCRYER_BIND=${bind}"
+            "SCRYER_DISABLE_SELF_UPGRADE=1"
+            "SCRYER_PACKAGE=nix"
+          ]
+          ++ lib.optionals (cfg.adminPasswordFile != null) [
+            "SCRYER_ADMIN_PASSWORD_FILE=%d/admin-password"
+            "SCRYER_ADMIN_USERNAME=${cfg.adminUsername}"
+          ]
+          ++ [
+            (lib.getExe cfg.package)
+            "--data-dir"
+            cfg.stateDir
+          ]
+        );
         EnvironmentFile = lib.optional (cfg.environmentFile != null) cfg.environmentFile;
         Restart = "on-failure";
         RestartSec = 5;
         TimeoutStopSec = 120;
-        UMask = "0007";
+        UMask = cfg.umask;
+        SupplementaryGroups = cfg.supplementaryGroups;
+        ReadOnlyPaths = cfg.readOnlyPaths;
+        LoadCredential = lib.optional (
+          cfg.adminPasswordFile != null
+        ) "admin-password:${cfg.adminPasswordFile}";
         NoNewPrivileges = true;
         PrivateTmp = true;
         PrivateDevices = true;
@@ -126,6 +249,15 @@ in
         CapabilityBoundingSet = "";
         ReadWritePaths = [ cfg.stateDir ] ++ cfg.writablePaths;
         # Do not set MemoryDenyWriteExecute: the Wasmtime plugin JIT needs it.
+      }
+      // lib.optionalAttrs cfg.waitForReady {
+        ExecStartPost = lib.escapeShellArgs [
+          "${pkgs.coreutils}/bin/timeout"
+          "--verbose"
+          "180"
+          waitForReady
+        ];
+        TimeoutStartSec = 185;
       };
     };
   };

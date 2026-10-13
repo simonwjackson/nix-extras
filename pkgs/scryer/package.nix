@@ -20,7 +20,7 @@
   cacert,
 }:
 let
-  version = "0.21.14";
+  version = "0.21.15";
   # Do not tie these inputs to the enclosing flake source tree. Cache and
   # documentation changes must not change the application derivation.
   materializer = builtins.path {
@@ -58,7 +58,7 @@ let
     inherit version src;
     nodejs = nodejs_24;
     sourceRoot = "${src.name or "source"}/apps/scryer-web";
-    npmDepsHash = "sha256-vqSwdijeFGI/e+BpQ5powkpKGaQH51RJVgo7fvxgA8I=";
+    npmDepsHash = "sha256-gnF5wm5f0yNtc12sWHFsDjMFTNPAZTKBJ15n3wLFOdU=";
     installPhase = ''
       runHook preInstall
       mkdir -p "$out"
@@ -70,7 +70,7 @@ in
 rustPlatform.buildRustPackage {
   pname = "scryer";
   inherit version src;
-  cargoHash = "sha256-eaiCZlSux0MbzZU0QvkwjR84dDfjGH3nrt5bkvComKc=";
+  cargoHash = "sha256-8ZzlXODh1l9DH1Bsz3sobH/BaS5zrZXnBNzkjcLlkGs=";
   nativeBuildInputs = [
     nasm
     cmake

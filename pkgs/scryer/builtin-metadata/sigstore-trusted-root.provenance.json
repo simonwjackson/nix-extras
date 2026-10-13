@@ -1,9 +1,9 @@
 {
-  "retrievedAt": "2026-10-10T23:36:40.655284+00:00",
+  "retrievedAt": "2026-10-13T05:49:34.029886+00:00",
   "schemaVersion": 1,
   "sha256": "6494e21ea73fa7ee769f85f57d5a3e6a08725eae1e38c755fc3517c9e6bc0b66",
   "sigstoreVersion": "cosign v3.1.3",
   "source": "https://tuf-repo-cdn.sigstore.dev",
-  "sourceCommit": "5c45aefee120cf4570d76ea91af5bc2c64620acc",
+  "sourceCommit": "bb56c3f7c546c4f3c6e9d12c587be66b3a0eaa7f",
   "target": "trusted_root.json"
 }

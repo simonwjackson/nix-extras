@@ -82,6 +82,12 @@ Run `nix build .#checks.x86_64-linux.scryer-builtins --no-link -L` before the fu
 
 The build verifies the saved root hash and root structure. TUF authentication occurs during the refresh, not through a network request during compilation. Root rotation and revocation changes need an explicit snapshot update. The retrieval timestamp stays fixed in Git for reproducible builds. A refresh changes embedded inputs and can require a full Scryer rebuild even when plugin versions remain unchanged.
 
+## Scryer 0.21.15 update
+
+The release is pinned to `bb56c3f7c546c4f3c6e9d12c587be66b3a0eaa7f`. Cargo and npm dependency hashes both changed. The upstream materializer refreshed host/SDK provenance to 0.21.15 / 3.15.0 and retained Newznab/Torznab 2.2.3 and the same TUF trust root. The offline assembler and signature restrictions remain unchanged; the existing build method still works.
+
+Transmission 2.0.2 and Jellyfin 1.1.1 use non-flake file inputs, following this repository's source convention instead of `fetchurl`. The lockfile contains NAR hashes; `pkgs/scryer/plugin.nix` independently checks the raw release SHA-256 and byte size before installing each asset. Updating a plugin requires changing the input URL, version, raw hash, and size together. The cache publisher discovers all package outputs, so it publishes both plugin packages without a separate package list.
+
 ## Test scope
 
 | Check | Scope |
@@ -91,9 +97,11 @@ The build verifies the saved root hash and root structure. TUF authentication oc
 | `scryer-builtins` | Offline verification of real upstream plugin signatures, root receipt and source pins; three tampering failures |
 | `reskate` | Release zip unpacks, `launcher.json` matches the package version, installer starts |
 | `reskate-install` | Installer against a Steam folder layout in a temp directory: game missing, older game build, second run, self-updated launcher kept, existing launch option kept, Steam running, `--force` |
-| `module-options` | Disabled modules, package overrides, loopback defaults, firewall options, user/group assertions, IPv6 command construction, environment files, writable paths |
+| `module-options` | Disabled modules, package overrides, loopback defaults, firewall options, user/group assertions, IPv6 command construction, environment files, writable/read-only paths, credential wiring, group/umask/readiness defaults |
 | `nzbfast-service` | Two real NixOS VMs, authenticated API, held synthetic NZB persistence, key permissions, custom user/directories, listener settings, firewall behavior, retained state when disabled |
 | `scryer-service` | Two real NixOS VMs, readiness and embedded UI, database/key persistence, custom user/directories, runtime environment, self-upgrade policy, firewall behavior, retained state when disabled |
+| `scryer-options` | Runtime root-only credential fixture, GraphQL login, store/unit/journal leak scan, umask, read-only mount, supplementary group writes, dependent readiness ordering, offline Transmission upload/listing |
+| `scryer-plugin-transmission` / `scryer-plugin-jellyfin` | Release file input, raw SHA-256 and byte-size check, stable installed path |
 
 Run a service test directly with `nix build .#checks.x86_64-linux.nzbfast-service -L --max-jobs 1 --cores 2`. Substitute `scryer-service` for Scryer.
 
@@ -105,7 +113,7 @@ The checks do not prove download throughput, provider behavior, long-running rel
 
 Only `x86_64-linux` is exported. To add `aarch64-linux`, first build both packages and run their service tests on that system. Changing `meta.platforms` or adding an output without running the builds does not establish support.
 
-CI uses pinned action commits and a read-only GitHub token. It runs sequential builds with two build cores. It removes unused Android, .NET, and GHC SDK directories only on the disposable hosted runner, then requires KVM for the VM tests. It does not install these services on a live host or publish a binary cache.
+CI uses pinned action commits and a read-only GitHub token. It runs sequential builds with two build cores. It removes unused Android, .NET, and GHC SDK directories only on the disposable hosted runner, then requires KVM for the VM tests. It does not install these services on a live host. Passing main builds publish the signed package cache; pull requests and branch workflow runs cannot publish it.
 
 The packages select thin LTO and 16 codegen units to limit compiler memory. These settings differ from upstream release profiles and can change executable size or performance. No comparative memory or performance benchmark is available.
 

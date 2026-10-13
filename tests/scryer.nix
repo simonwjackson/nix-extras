@@ -47,7 +47,7 @@ pkgs.testers.runNixOSTest {
   testScript = ''
     start_all()
     server.wait_for_unit("scryer.service")
-    server.succeed("scryer --version | grep -Fx 'scryer 0.21.14'")
+    server.succeed("scryer --version | grep -Fx 'scryer 0.21.15'")
     server.wait_until_succeeds("curl -fsS http://127.0.0.1:8080/health/ready", timeout=180)
     server.succeed("curl -fsS http://127.0.0.1:8080/ | grep -i scryer")
     server.succeed("ss -lnt | grep '127.0.0.1:8080'")
