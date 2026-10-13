@@ -177,7 +177,7 @@ services.scryer = {
 };
 ```
 
-Provision the password file separately, owned by root with mode `0600`. The module passes `LoadCredential=admin-password:<path>` and `SCRYER_ADMIN_PASSWORD_FILE=%d/admin-password`. Systemd gives the service a private readable copy; the source stays root-only and is not imported into the store. `adminUsername` sets `SCRYER_ADMIN_USERNAME` only when `adminPasswordFile` is set. These credential settings take precedence over the optional environment file. They bootstrap a fresh admin, not reset an existing password. If you enable form login, Scryer refuses an unchanged `admin` password.
+Provision the password file separately, owned by root with mode `0600`. The module passes `LoadCredential=admin-password:<path>` and `SCRYER_ADMIN_PASSWORD_FILE=%d/admin-password`. Systemd gives the service a private readable copy; the source stays root-only and is not imported into the store. `adminUsername` sets `SCRYER_ADMIN_USERNAME` only when `adminPasswordFile` is set. These credential settings take precedence over the optional environment file. They bootstrap a fresh admin, not reset an existing password. Scryer 0.21.15 treats the bootstrap password as temporary. The first login returns a restricted token with `passwordChangeRequired = true`; complete `completeRequiredPasswordChange` (or the UI password-change step) before installing plugins or using the application. If you enable form login, Scryer refuses an unchanged `admin` password.
 
 Never put passwords in `environment` or `settings`. Upstream also supports runtime `SCRYER_ADMIN_PASSWORD_FILE` or `SCRYER_ADMIN_PASSWORD` through `environmentFile`; without the credential option, any referenced file must be readable by the service user.
 
@@ -204,7 +204,7 @@ nix fmt -- --ci
 nix flake check -L --max-jobs 1 --cores 2
 ```
 
-Checks include selected upstream Rust unit tests, signed-asset verification with tampering tests, signed-cache import tests, and NixOS VM service tests. The VMs exercise HTTP readiness, embedded UI, generated key permissions, unprivileged execution, restart persistence, custom users/directories, firewall settings, and disabling without deleting state. A credential VM also checks admin GraphQL login, password absence from the store/unit/journal, umask, supplementary groups, read-only mounts, readiness ordering, and offline Transmission upload/listing. They use temporary state and no real provider credentials. The full upstream test suites, real Usenet downloads, media imports, and an NZBFAST-to-Scryer workflow are not tested here.
+Checks include selected upstream Rust unit tests, signed-asset verification with tampering tests, signed-cache import tests, and NixOS VM service tests. The VMs exercise HTTP readiness, embedded UI, generated key permissions, unprivileged execution, restart persistence, custom users/directories, firewall settings, and disabling without deleting state. A credential VM also checks admin GraphQL login and required first-login password change, password absence from the store/unit/journal, umask, supplementary groups, read-only mounts, readiness ordering, and offline Transmission upload/listing. They use temporary state and no real provider credentials. The full upstream test suites, real Usenet downloads, media imports, and an NZBFAST-to-Scryer workflow are not tested here.
 
 The VM tests require Linux with working KVM. CI fails rather than skips when KVM is unavailable. Cold builds can take substantially longer than evaluation; keep builds sequential on shared machines.
 

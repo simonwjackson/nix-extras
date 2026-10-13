@@ -77,5 +77,6 @@ pkgs.testers.runNixOSTest {
     server.succeed("python3 ${./scryer-options.py} verify ${plugin}/share/scryer/plugins/transmission/plugin-v3.wasm.zst", timeout=240)
     server.succeed("systemctl restart scryer", timeout=200)
     server.succeed("curl -fsS http://127.0.0.1:8080/health/ready | jq -e '.ready == true'")
+    server.succeed("python3 ${./scryer-options.py} verify-restart")
   '';
 }
