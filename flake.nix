@@ -57,6 +57,21 @@
       url = "https://cdn.scryer.media/scryer/plugins-v3/torznab/v2.2.3/plugin-v3.b9df6ec430d6b1a8546ca094817f6b383369fd728a7d8077899655bb9237572f.wasm.zst.bundle.zst";
       flake = false;
     };
+    scryer-release-tarball = {
+      type = "file";
+      url = "https://github.com/scryer-media/scryer/releases/download/scryer-v0.21.15/scryer-linux-x86_64-portable.tar.gz";
+      flake = false;
+    };
+    scryer-release-checksums = {
+      type = "file";
+      url = "https://github.com/scryer-media/scryer/releases/download/scryer-v0.21.15/scryer-checksums.txt";
+      flake = false;
+    };
+    scryer-release-checksums-bundle = {
+      type = "file";
+      url = "https://github.com/scryer-media/scryer/releases/download/scryer-v0.21.15/scryer-checksums.txt.cosign-v3.sigstore.json";
+      flake = false;
+    };
     scryer-trust-root = {
       type = "file";
       url = "https://tuf-repo-cdn.sigstore.dev/targets/6494e21ea73fa7ee769f85f57d5a3e6a08725eae1e38c755fc3517c9e6bc0b66.trusted_root.json";
@@ -93,7 +108,16 @@
           sha256 = "841a487687d683eb2d682868245a6aacabe054a490737408937846b2d52c9552";
           size = 301465;
         };
-        scryer = pkgs.callPackage ./pkgs/scryer/package.nix {
+        # Default: upstream's signed release binary. Only it can enroll with
+        # SMG (see pkgs/scryer/release.nix). The source build stays for checks.
+        scryer = pkgs.callPackage ./pkgs/scryer/release.nix {
+          version = "0.21.15";
+          tarball = inputs.scryer-release-tarball;
+          checksums = inputs.scryer-release-checksums;
+          checksumsBundle = inputs.scryer-release-checksums-bundle;
+          trustRoot = inputs.scryer-trust-root;
+        };
+        scryer-source = pkgs.callPackage ./pkgs/scryer/package.nix {
           src = scryer-src;
           builtinInputs = {
             newznabWasm = inputs.scryer-newznab-wasm;
@@ -135,14 +159,18 @@
       overlays.default = final: _prev: packagesFor final;
       formatter = forSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-tree);
       nixosModules = {
-        nzbfast = { lib, pkgs, ... }: {
-          imports = [ ./modules/nzbfast.nix ];
-          services.nzbfast.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.nzbfast;
-        };
-        scryer = { lib, pkgs, ... }: {
-          imports = [ ./modules/scryer.nix ];
-          services.scryer.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.scryer;
-        };
+        nzbfast =
+          { lib, pkgs, ... }:
+          {
+            imports = [ ./modules/nzbfast.nix ];
+            services.nzbfast.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.nzbfast;
+          };
+        scryer =
+          { lib, pkgs, ... }:
+          {
+            imports = [ ./modules/scryer.nix ];
+            services.scryer.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.scryer;
+          };
       };
       checks = forSystems (
         system:
@@ -168,11 +196,15 @@
           cache-input-stability = import ./tests/cache-input-stability.nix {
             inherit pkgs;
             src = scryer-src;
-            inherit (self.packages.${system}.scryer) builtinInputs;
+            inherit (self.packages.${system}.scryer-source) builtinInputs;
+          };
+          scryer-release = import ./tests/scryer-release.nix {
+            inherit pkgs;
+            package = self.packages.${system}.scryer;
           };
           scryer-builtins = import ./tests/scryer-builtins.nix {
             inherit pkgs;
-            package = self.packages.${system}.scryer;
+            package = self.packages.${system}.scryer-source;
           };
           nzbfast-service = import ./tests/nzbfast.nix {
             inherit pkgs;

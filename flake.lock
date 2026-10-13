@@ -67,6 +67,9 @@
         "scryer-newznab-wasm": "scryer-newznab-wasm",
         "scryer-plugin-jellyfin": "scryer-plugin-jellyfin",
         "scryer-plugin-transmission": "scryer-plugin-transmission",
+        "scryer-release-checksums": "scryer-release-checksums",
+        "scryer-release-checksums-bundle": "scryer-release-checksums-bundle",
+        "scryer-release-tarball": "scryer-release-tarball",
         "scryer-src": "scryer-src",
         "scryer-torznab-bundle": "scryer-torznab-bundle",
         "scryer-torznab-wasm": "scryer-torznab-wasm",
@@ -119,6 +122,42 @@
       "original": {
         "type": "file",
         "url": "https://github.com/scryer-media/scryer-plugins/releases/download/plugins-v3/transmission/v2.0.2/plugin-v3.wasm.zst"
+      }
+    },
+    "scryer-release-checksums": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-ZUD2+ONLIQAUEkUJNHkNP6cE8/Mn13f1t/alMe1ldI4=",
+        "type": "file",
+        "url": "https://github.com/scryer-media/scryer/releases/download/scryer-v0.21.15/scryer-checksums.txt"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://github.com/scryer-media/scryer/releases/download/scryer-v0.21.15/scryer-checksums.txt"
+      }
+    },
+    "scryer-release-checksums-bundle": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-iw5NYUXtdnghua1m74z7keS0nnGN9r5rWypNHmoutq4=",
+        "type": "file",
+        "url": "https://github.com/scryer-media/scryer/releases/download/scryer-v0.21.15/scryer-checksums.txt.cosign-v3.sigstore.json"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://github.com/scryer-media/scryer/releases/download/scryer-v0.21.15/scryer-checksums.txt.cosign-v3.sigstore.json"
+      }
+    },
+    "scryer-release-tarball": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-z5v03nDwY7Xn/bXIelIde3rQdaRfkAEqiixLJWNmQwE=",
+        "type": "file",
+        "url": "https://github.com/scryer-media/scryer/releases/download/scryer-v0.21.15/scryer-linux-x86_64-portable.tar.gz"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://github.com/scryer-media/scryer/releases/download/scryer-v0.21.15/scryer-linux-x86_64-portable.tar.gz"
       }
     },
     "scryer-src": {

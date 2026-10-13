@@ -6,6 +6,10 @@ Each application has one package expression and one optional NixOS module. The f
 
 Sources are non-flake inputs with release URLs and committed lock entries. Cargo and npm dependency hashes are separate from source hashes. No application executable is fetched from release assets, except ReSkate's (see below).
 
+`packages.scryer` is upstream's signed release binary (`pkgs/scryer/release.nix`). A source build cannot use Scryer's metadata gateway (SMG): upstream embeds the SMG registration secret at compile time from its CI secrets (`crates/scryer/build.rs:123`), and SMG answers a source build with 401, so titles never get metadata. The release package verifies, in the sandbox, the checksum file's Sigstore bundle against the pinned trust root, the GitHub Actions issuer and the exact identity `.github/workflows/scryer.yml@refs/tags/scryer-v<version>`, then the tarball's SHA-256 against that file. `checks.scryer-release` proves a tampered checksum file and a wrong tag are refused. The binary is not reproducible from our source pin; the signature binds it to upstream's release workflow. On a release update, change the three `scryer-release-*` input URLs and the `version` argument together.
+
+`packages.scryer-source` keeps the source build for its unit tests and built-in asset checks.
+
 Scryer's application source omits generated built-in assets. Five non-flake file inputs lock its two compressed WASM plugins, two compressed Sigstore bundles, and a Sigstore trust snapshot. The package also takes these paths through `builtinInputs`, so `callPackage` does not require a flake. The asset builder checks signatures with upstream signer restrictions, BLAKE3 pins from the application source, and descriptor hashes. Verification runs in the network-isolated Nix sandbox.
 
 Modules configure service execution and filesystem access. They do not declare provider credentials, indexers, application migrations, or a connection between the applications. This keeps secrets and application-owned settings outside the store, but initial application setup remains manual.
