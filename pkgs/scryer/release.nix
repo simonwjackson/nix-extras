@@ -24,6 +24,8 @@ let
 in
 runCommand "scryer-${version}"
   {
+    pname = "scryer";
+    inherit version;
     nativeBuildInputs = [ cosign ];
     passthru = {
       inherit
